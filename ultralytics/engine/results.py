@@ -534,7 +534,7 @@ class Results(SimpleClass):
         # Plot Detect results
         if pred_boxes is not None and show_boxes:
             for i, d in enumerate(reversed(pred_boxes)):
-                c, conf, id = int(d.cls), float(d.conf) if conf else None, None if d.id is None else int(d.id.item())
+                c, conf, id = int(d.cls), d.conf.float() if conf else None, None if d.id is None else int(d.id.item())
                 name = ("" if id is None else f"id:{id} ") + names[c]
                 label = (f"{name} {conf:.2f}" if conf else name) if labels else None
                 box = d.xyxyxyxy.reshape(-1, 4, 2).squeeze() if is_obb else d.xyxy.squeeze()
@@ -701,7 +701,8 @@ class Results(SimpleClass):
         elif boxes:
             # Detect/segment/pose
             for j, d in enumerate(boxes):
-                c, conf, id = int(d.cls), float(d.conf), None if d.id is None else int(d.id.item())
+                # c, conf, id = int(d.cls), float(d.conf), None if d.id is None else int(d.id.item())
+                c, conf, id = int(d.cls), d.conf.float(), None if d.id is None else int(d.id.item())
                 line = (c, *(d.xyxyxyxyn.view(-1) if is_obb else d.xywhn.view(-1)))
                 if masks:
                     seg = masks[j].xyn[0].copy().reshape(-1)  # reversed mask.xyn, (n,2) to (n*2)
@@ -709,7 +710,11 @@ class Results(SimpleClass):
                 if kpts is not None:
                     kpt = torch.cat((kpts[j].xyn, kpts[j].conf[..., None]), 2) if kpts[j].has_visible else kpts[j].xyn
                     line += (*kpt.reshape(-1).tolist(),)
-                line += (conf,) * save_conf + (() if id is None else (id,))
+                
+                individual_tensors = [torch.tensor([value])[0] for value in conf.flatten()]
+                
+                # line += (conf,) * save_conf + (() if id is None else (id,))
+                line += (*individual_tensors,) * save_conf + (() if id is None else (id,))
                 texts.append(("%g " * len(line)).rstrip() % line)
 
         if texts:
@@ -919,9 +924,10 @@ class Boxes(BaseTensor):
         if boxes.ndim == 1:
             boxes = boxes[None, :]
         n = boxes.shape[-1]
-        assert n in {6, 7}, f"expected 6 or 7 values but got {n}"  # xyxy, track_id, conf, cls
+        assert n in {n, n+1}, f"expected 6 or 7 values but got {n}"  # xyxy, track_id, conf, cls
         super().__init__(boxes, orig_shape)
         self.is_track = n == 7
+        
         self.orig_shape = orig_shape
 
     @property
@@ -942,6 +948,24 @@ class Boxes(BaseTensor):
         return self.data[:, :4]
 
     @property
+    def confs(self):
+        """
+        Returns the confidence scores for each detection box.
+
+        Returns:
+            (torch.Tensor | numpy.ndarray): A 1D tensor or array containing confidence scores for each detection,
+                with shape (N,) where N is the number of detections.
+
+        Examples:
+            >>> boxes = Boxes(torch.tensor([[10, 20, 30, 40, 0.9, 0]]), orig_shape=(100, 100))
+            >>> conf_scores = boxes.conf
+            >>> print(conf_scores)
+            tensor([0.9000])
+        """
+        print(np.max(self.data[:, 4:-1].numpy()))
+        return np.max(self.data[:, 4:-1].numpy())
+    
+    @property
     def conf(self):
         """
         Returns the confidence scores for each detection box.
@@ -956,7 +980,7 @@ class Boxes(BaseTensor):
             >>> print(conf_scores)
             tensor([0.9000])
         """
-        return self.data[:, -2]
+        return self.data[:, 4:-1]
 
     @property
     def cls(self):

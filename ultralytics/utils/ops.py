@@ -243,6 +243,7 @@ def non_max_suppression(
 
     t = time.time()
     output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
+    output2 = [torch.zeros((0,4+nc+1), device=prediction.device)] * bs
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
         # x[((x[:, 2:4] < min_wh) | (x[:, 2:4] > max_wh)).any(1), 4] = 0  # width-height
@@ -264,11 +265,15 @@ def non_max_suppression(
         box, cls, mask = x.split((4, nc, nm), 1)
 
         if multi_label:
+            print('here i am #01')
             i, j = torch.where(cls > conf_thres)
             x = torch.cat((box[i], x[i, 4 + j, None], j[:, None].float(), mask[i]), 1)
         else:  # best class only
             conf, j = cls.max(1, keepdim=True)
+            confs = cls
+            # print(conf.view(-1) > conf_thres)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
+            x2 = torch.cat((box, confs, j.float(), mask), 1)[conf.view(-1) > conf_thres]
 
         # Filter by class
         if classes is not None:
@@ -283,13 +288,18 @@ def non_max_suppression(
 
         # Batched NMS
         c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
+    
         scores = x[:, 4]  # scores
+        scores_all = x2[:,4:-1]
+        
         if rotated:
+            
             boxes = torch.cat((x[:, :2] + c, x[:, 2:4], x[:, -1:]), dim=-1)  # xywhr
             i = nms_rotated(boxes, scores, iou_thres)
         else:
             boxes = x[:, :4] + c  # boxes (offset by class)
             i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+            
         i = i[:max_det]  # limit detections
 
         # # Experimental
@@ -305,11 +315,12 @@ def non_max_suppression(
         #         i = i[iou.sum(1) > 1]  # require redundancy
 
         output[xi] = x[i]
+        output2[xi] = x2[i]
+        # print(output2)
         if (time.time() - t) > time_limit:
             LOGGER.warning(f"WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded")
             break  # time limit exceeded
-
-    return output
+    return output2
 
 
 def clip_boxes(boxes, shape):

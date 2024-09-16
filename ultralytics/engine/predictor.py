@@ -338,7 +338,7 @@ class BasePredictor:
             self.plotted_img = result.plot(
                 line_width=self.args.line_width,
                 boxes=self.args.show_boxes,
-                conf=self.args.show_conf,
+                conf=np.self.args.show_conf,
                 labels=self.args.show_labels,
                 im_gpu=None if self.args.retina_masks else im[i],
             )

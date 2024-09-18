@@ -37,7 +37,7 @@ IS_TMP_WRITEABLE = is_dir_writeable(TMP)  # WARNING: must be run once tests star
 
 
 def test_model_forward():
-    """Test the forward pass of the YOLO model."""
+    """Test the forward pass of the YOLO model.""" 
     model = YOLO(CFG)
     model(source=None, imgsz=32, augment=True)  # also test no source and augment
 
@@ -273,7 +273,7 @@ def test_results(model):
         r.plot(pil=True)
         r.plot(conf=True, boxes=True)
         print(r, len(r), r.path)  # print after methods
-
+    
 
 def test_labels_and_crops():
     """Test output from prediction args for saving YOLO detection labels and crops; ensures accurate saving."""
@@ -619,3 +619,4 @@ def test_yolov10():
     model.val(data="coco8.yaml", imgsz=32)
     model.predict(imgsz=32, save_txt=True, save_crop=True, augment=True)
     model(SOURCE)
+

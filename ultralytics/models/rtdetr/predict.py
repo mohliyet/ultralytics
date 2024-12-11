@@ -59,14 +59,23 @@ class RTDETRPredictor(BasePredictor):
         for bbox, score, orig_img, img_path in zip(bboxes, scores, orig_imgs, self.batch[0]):  # (300, 4)
             bbox = ops.xywh2xyxy(bbox)
             max_score, cls = score.max(-1, keepdim=True)  # (300, 1)
+            scores_all = scores.clone()
             idx = max_score.squeeze(-1) > self.args.conf  # (300, )
+            # print(bbox[0])
+            # print(scores_all[0][0].shape)
+            
             if self.args.classes is not None:
                 idx = (cls == torch.tensor(self.args.classes, device=cls.device)).any(1) & idx
             pred = torch.cat([bbox, max_score, cls], dim=-1)[idx]  # filter
+            pred_all = torch.cat((bbox, scores_all[0],cls), dim=-1)[idx]
             oh, ow = orig_img.shape[:2]
+            print(pred[..., [0, 2]][0])
+            print(pred[..., [1, 3]][0])
             pred[..., [0, 2]] *= ow
             pred[..., [1, 3]] *= oh
-            results.append(Results(orig_img, path=img_path, names=self.model.names, boxes=pred))
+            pred_all[..., [0, 2]] *= ow
+            pred_all[..., [1, 3]] *= oh
+            results.append(Results(orig_img, path=img_path, names=self.model.names, boxes=pred_all))
         return results
 
     def pre_transform(self, im):

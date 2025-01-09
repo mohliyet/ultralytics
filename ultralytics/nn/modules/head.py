@@ -109,8 +109,10 @@ class Detect(nn.Module):
         if self.export and self.format in {"saved_model", "pb", "tflite", "edgetpu", "tfjs"}:  # avoid TF FlexSplitV ops
             box = x_cat[:, : self.reg_max * 4]
             cls = x_cat[:, self.reg_max * 4 :]
+            print(cls.shape)
         else:
             box, cls = x_cat.split((self.reg_max * 4, self.nc), 1)
+            # print(cls.shape)
 
         if self.export and self.format in {"tflite", "edgetpu"}:
             # Precompute normalization factor to increase numerical stability
@@ -127,7 +129,7 @@ class Detect(nn.Module):
             return dbox.transpose(1, 2), cls.sigmoid().permute(0, 2, 1)
         else:
             dbox = self.decode_bboxes(self.dfl(box), self.anchors.unsqueeze(0)) * self.strides
-
+        print('it works!')
         return torch.cat((dbox, cls.sigmoid()), 1)
 
     def bias_init(self):
@@ -301,6 +303,7 @@ class Classify(nn.Module):
         if self.training:
             return x
         y = x.softmax(1)  # get final output
+        print('you were here!')
         return y if self.export else (y, x)
 
 

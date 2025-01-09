@@ -68,6 +68,7 @@ class HungarianMatcher(nn.Module):
                 For each batch element, it holds:
                     len(index_i) = len(index_j) = min(num_queries, num_target_boxes)
         """
+        print('is it still working?')
         bs, nq, nc = pred_scores.shape
 
         if sum(gt_groups) == 0:
@@ -75,6 +76,7 @@ class HungarianMatcher(nn.Module):
 
         # We flatten to compute the cost matrices in a batch
         # [batch_size * num_queries, num_classes]
+        print ('do not be shay. you were here!')
         pred_scores = pred_scores.detach().view(-1, nc)
         pred_scores = F.sigmoid(pred_scores) if self.use_fl else F.softmax(pred_scores, dim=-1)
         # [batch_size * num_queries, 4]

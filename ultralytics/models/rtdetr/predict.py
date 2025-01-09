@@ -69,8 +69,8 @@ class RTDETRPredictor(BasePredictor):
             pred = torch.cat([bbox, max_score, cls], dim=-1)[idx]  # filter
             pred_all = torch.cat((bbox, scores_all[0],cls), dim=-1)[idx]
             oh, ow = orig_img.shape[:2]
-            print(pred[..., [0, 2]][0])
-            print(pred[..., [1, 3]][0])
+            # print(pred[..., [0, 2]][0])
+            # print(pred[..., [1, 3]][0])
             pred[..., [0, 2]] *= ow
             pred[..., [1, 3]] *= oh
             pred_all[..., [0, 2]] *= ow
